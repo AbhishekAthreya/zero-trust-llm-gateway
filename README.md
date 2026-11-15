@@ -20,25 +20,37 @@ The gateway enforces a strict, fail-closed security pipeline. Every client reque
 
 The architectural flow below illustrates the complete 5-stage Zero-Trust inspection pathway from operator prompt ingress to verified model execution and SIEM telemetry generation:
 
+![Roadmap](screenshots/roadmap.png)
+
 ## 3. Demos & Interface Screenshots
 
 ### Live SOC Telemetry & Defense Status Dashboard
+
+![SOC Dashboard](screenshots/dashboard.png)
 
 *Figure 1: The Next.js 15 dark-mode SOC telemetry header displaying live gateway health, active defense layer toggles (Pattern DLP, mDoS Rate Limiter, Semantic Firewall), and real-time backend inspection counters.*
 
 ### Interactive Operator Console
 
+![Interactive Console](screenshots/console.png)
+
 *Figure 2: The single-page operator chat interface built with Tailwind CSS and Framer Motion, featuring keyboard-locked submission controls (`Ctrl + Enter`), real-time terminal scanning states, and direct REST wiring to the FastAPI proxy.*
 
 ### Stage 4 Semantic Firewall: Adversarial Jailbreak Mitigation (`403 THREAT BLOCKED`)
+
+![403 Blocked](screenshots/blocked.png)
 
 *Figure 3: `llama-guard3` actively intercepting and dropping a complex, multi-layered rogue AI scenario-based jailbreak payload. The gateway halts execution prior to core LLM inference and returns an explicit `403 THREAT BLOCKED` security exception to the console.*
 
 ### Verified Benign Payload Execution (`200 OK`)
 
+![Legitimate Prompt Success](screenshots/success.png)
+
 *Figure 4: A legitimate, policy-compliant prompt clearing all five Zero-Trust inspection stages (DLP scrubbing, token bucket validation, and semantic safety classification) and returning a verified `200 OK` response payload.*
 
 ### Real-Time SIEM Audit Trail (`security_audit.log`)
+
+![Security Audit Log](screenshots/logs.png)
 
 *Figure 5: Live terminal tail of `security_audit.log` capturing, timestamping, and classifying both permitted (`200`) and blocked (`403`/`429`) prompt transactions in a structured, SIEM-ready audit format.*
 
@@ -48,27 +60,25 @@ Follow these steps to deploy the full Zero-Trust LLM Gateway stack locally for t
 
 ### Step 1: Clone the Repository
 
-```
+```bash
 git clone https://github.com/AbhishekAthreya/zero-trust-soc-gateway.git
 cd zero-trust-soc-gateway
-
 ```
 
 ### Step 2: Install Ollama & Pull the Semantic Firewall Model
 
 Ensure [Ollama](https://ollama.com/) is installed and running on your host machine, then pull `llama-guard3`. Note that **`llama-guard3` is the ONLY required engine model** for the semantic firewall pipeline:
 
-```
+```bash
 ollama serve
 ollama pull llama-guard3
-
 ```
 
 ### Step 3: Configure & Launch the FastAPI Backend (Port `8000`)
 
 Create an isolated Python virtual environment, install the backend dependencies, and start the asynchronous Uvicorn ASGI server on port `8000`:
 
-```
+```bash
 cd backend
 python -m venv venv
 
@@ -79,18 +89,16 @@ source venv/bin/activate
 
 pip install fastapi uvicorn httpx pydantic
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
 ```
 
 ### Step 4: Configure & Launch the Next.js 15 Frontend (Port `3000`)
 
 Open a separate terminal window, install the Node.js packages, and start the Next.js development server on port `3000`:
 
-```
+```bash
 cd frontend
 npm install
 npm run dev
-
 ```
 
 Navigate to `http://localhost:3000` in your browser to access the SOC operator console.
@@ -102,12 +110,12 @@ Navigate to `http://localhost:3000` in your browser to access the SOC operator c
 
 Deploying LLMs directly to production without an intermediary inspection proxy exposes organizations to severe operational, financial, and regulatory risks. Zero-Trust LLM Gateway addresses critical enterprise security requirements mapped to the **OWASP Top 10 for Large Language Model Applications**:
 
-* **Enforcing a Zero-Trust Enterprise Security Posture (OWASP LLM01: Prompt Injection):** Treats every user input and external context payload as untrusted until verified. Decouples security enforcement from the underlying LLM's system prompt—which can be bypassed via adversarial framing—by placing a dedicated, deterministic-plus-semantic inspection layer (`llama-guard3`) in front of the inference engine.
+- **Enforcing a Zero-Trust Enterprise Security Posture (OWASP LLM01: Prompt Injection):** Treats every user input and external context payload as untrusted until verified. Decouples security enforcement from the underlying LLM's system prompt—which can be bypassed via adversarial framing—by placing a dedicated, deterministic-plus-semantic inspection layer (`llama-guard3`) in front of the inference engine.
 
-* **Preventing Intellectual Property & PII Exfiltration (OWASP LLM06: Sensitive Information Disclosure):** Employees frequently paste proprietary source code, internal API keys, customer PII, or database credentials into enterprise AI assistants. The Stage 2 Pattern DLP Scrubber strips sensitive tokens at the proxy boundary before they are transmitted to external model providers or logged in training corpora.
+- **Preventing Intellectual Property & PII Exfiltration (OWASP LLM06: Sensitive Information Disclosure):** Employees frequently paste proprietary source code, internal API keys, customer PII, or database credentials into enterprise AI assistants. The Stage 2 Pattern DLP Scrubber strips sensitive tokens at the proxy boundary before they are transmitted to external model providers or logged in training corpora.
 
-* **Mitigating Compute Exhaustion & Financial Denial-of-Wallet (OWASP LLM04: Model Denial of Service):** Unbounded prompt lengths and high-frequency automated requests can saturate local GPU VRAM or rack up thousands of dollars in commercial API token billing within minutes. The Stage 3 Adaptive Token Bucket Rate Limiter enforces strict per-client request quotas at minimal CPU cost.
+- **Mitigating Compute Exhaustion & Financial Denial-of-Wallet (OWASP LLM04: Model Denial of Service):** Unbounded prompt lengths and high-frequency automated requests can saturate local GPU VRAM or rack up thousands of dollars in commercial API token billing within minutes. The Stage 3 Adaptive Token Bucket Rate Limiter enforces strict per-client request quotas at minimal CPU cost.
 
-* **Avoiding Regulatory & Compliance Penalties (GDPR, HIPAA, SOC 2, ISO 27001):** Unauthorized processing of unredacted PII or failure to log security incidents can result in severe statutory fines under GDPR and HIPAA. Combining pre-inference DLP redaction with immutable, timestamped `security_audit.log` telemetry provides audit-ready evidence of policy enforcement and incident response.
+- **Avoiding Regulatory & Compliance Penalties (GDPR, HIPAA, SOC 2, ISO 27001):** Unauthorized processing of unredacted PII or failure to log security incidents can result in severe statutory fines under GDPR and HIPAA. Combining pre-inference DLP redaction with immutable, timestamped `security_audit.log` telemetry provides audit-ready evidence of policy enforcement and incident response.
 
-* **Protecting Brand Reputation & Preventing Autonomous Agent Hijacking:** Adversarial jailbreaks that coerce corporate chatbots into generating toxic content, unauthorized financial commitments, or malicious code create immediate legal and reputational liability. Intercepting rogue persona and jailbreak scenarios with `HTTP 403` blocks ensures downstream models operate strictly within authorized enterprise boundaries.
+- **Protecting Brand Reputation & Preventing Autonomous Agent Hijacking:** Adversarial jailbreaks that coerce corporate chatbots into generating toxic content, unauthorized financial commitments, or malicious code create immediate legal and reputational liability. Intercepting rogue persona and jailbreak scenarios with `HTTP 403` blocks ensures downstream models operate strictly within authorized enterprise boundaries.
