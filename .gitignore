@@ -1,0 +1,16 @@
+# Next.js Frontend
+node_modules/
+.next/
+out/
+build/
+.env*.local
+
+# Python Backend
+llm-firewall/venv/
+llm-firewall/__pycache__/
+llm-firewall/security_audit.log
+.pytest_cache/
+
+# OS Files
+.DS_Store
+Thumbs.db
